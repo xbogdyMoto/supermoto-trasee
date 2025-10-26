@@ -1,30 +1,69 @@
-<script>
-  const map = L.map('map').setView([45.85, 22.92], 11);
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
-  const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    {maxZoom: 19, attribution: 'Tiles © Esri'});
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Traseu Supermoto Deva – Hunedoara</title>
+  <meta name="description" content="Harta interactiva a traseului Deva – Hunedoara cu start/sosire si fisier GPX.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <style>
+    body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0f1115;color:#e7e9ee}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    #map{height:70vh;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.25);margin-top:8px}
+    a{color:#8ab4ff;text-decoration:none}
+    .toolbar{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+    .btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
+    .note{color:#aab0bc;font-size:14px;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Deva – Hunedoara (demo)</h1>
+    <p class="note">Daca harta ramane alba, reimprospateaza cu <b>Ctrl+F5</b>.</p>
+    <div id="map"></div>
+    <div class="toolbar">
+      <a class="btn" href="deva-hunedoara.gpx" download>Descarca GPX</a>
+      <a href="../index.html">← Inapoi la lista de trasee</a>
+    </div>
+    <p id="status" class="note"></p>
+  </div>
 
-  L.control.layers({'OpenStreetMap':osm,'Satelit (Esri)':esriSat},{}).addTo(map);
-  L.control.scale().addTo(map);
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-gpx@1.7.0/dist/leaflet-gpx.min.js"></script>
+  <script>
+    const map = L.map('map').setView([45.85, 22.92], 11);
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    const esriSat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: 'Tiles © Esri' }
+    );
+    L.control.layers({ 'OpenStreetMap': osm, 'Satelit (Esri)': esriSat }, {}).addTo(map);
+    L.control.scale().addTo(map);
 
-  const g = new L.GPX('deva-hunedoara.gpx', {
-    async: true,
-    marker_options: {
-      startIconUrl: 'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-start.png',
-      endIconUrl:   'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-end.png',
-      shadowUrl:    'https://unpkg.com/leaflet-gpx@1.7.0/pin-shadow.png'
-    },
-    polyline_options: {weight:4}
-  })
-  .on('loaded', (e) => {
-    map.fitBounds(e.target.getBounds(), {padding:[20,20]});
-
-    // adauga popup-uri pe start/sosire
-    const start = e.target.get_starting_point();
-    const end   = e.target.get_ending_point();
-    L.marker(start).bindPopup('Start traseu').addTo(map);
-    L.marker(end).bindPopup('Sosire').addTo(map);
-  })
-  .addTo(map);
-</script>
+    const statusEl = document.getElementById('status');
+    const g = new L.GPX('deva-hunedoara.gpx', {
+      async: true,
+      marker_options: {
+        startIconUrl: 'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-start.png',
+        endIconUrl:   'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-end.png',
+        shadowUrl:    'https://unpkg.com/leaflet-gpx@1.7.0/pin-shadow.png'
+      },
+      polyline_options: { weight: 4 }
+    })
+    .on('loaded', (e) => {
+      map.fitBounds(e.target.getBounds(), { padding: [20,20] });
+      const start = e.target.get_starting_point();
+      const end   = e.target.get_ending_point();
+      L.marker(start).bindPopup('Start traseu').addTo(map);
+      L.marker(end).bindPopup('Sosire').addTo(map);
+      statusEl.textContent = 'Traseu incarcat.';
+    })
+    .on('error', () => {
+      statusEl.textContent = 'Nu am putut incarca GPX-ul (verifica numele/locatia fisierului). Afisez doar harta de baza.';
+    })
+    .addTo(map);
+  </script>
+</body>
+</html>
