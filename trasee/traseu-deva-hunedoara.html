@@ -3,39 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Traseu Supermoto Deva – Hunedoara</title>
-  <meta name="description" content="Harta interactiva a traseului Deva – Hunedoara, cu linie si marcaje start/sosire.">
+  <title>Traseu Test – Deva–Hunedoara</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
     body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0f1115;color:#e7e9ee}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
     #map{height:70vh;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.25);margin-top:8px}
-    a{color:#8ab4ff;text-decoration:none}
-    .toolbar{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
-    .btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
-    .note{color:#aab0bc;font-size:14px;margin-top:8px}
+    a{color:#8ab4ff}
+    .note{color:#aab0bc}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Deva – Hunedoara (demo)</h1>
+    <h1>Test linie + markere</h1>
+    <p class="note">Daca nu vezi linia/rectangle, fa Ctrl+F5 sau adauga <code>?v=9</code> la URL.</p>
     <div id="map"></div>
-    <div class="toolbar">
-      <a class="btn" href="deva-hunedoara.gpx" download>Descarca GPX</a>
-      <a href="../index.html">← Inapoi la lista de trasee</a>
-    </div>
-    <p class="note">Daca nu vezi linia, apasa Ctrl+F5 sau deschide in Incognito.</p>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    // 1) Harta de baza
-    const map = L.map('map').setView([45.85, 22.92], 11);
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    console.log("Leaflet version:", L.version);
 
-    // 2) Coordonate de TEST (linie manuala ca sa confirmam ca totul merge)
+    // 1) Harta
+    const map = L.map('map').setView([45.80, 22.93], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
+
+    // 2) Coordonate test (in jurul Hunedoara)
     const coords = [
       [45.749, 22.905],
       [45.757, 22.922],
@@ -44,12 +38,24 @@
       [45.793, 22.934]
     ];
 
-    // 3) Deseneaza linia + marcaje start/sosire
-    const line = L.polyline(coords, { weight: 4 }).addTo(map);
-    map.fitBounds(line.getBounds(), { padding: [20,20] });
+    // Marcaje mari (trebuie sa le vezi sigur)
+    L.marker(coords[0], {title:"START"}).bindPopup("START").addTo(map);
+    L.marker(coords[coords.length-1], {title:"SOSIRE"}).bindPopup("SOSIRE").addTo(map);
 
-    L.marker(coords[0]).bindPopup('Start traseu (Hunedoara)').addTo(map);
-    L.marker(coords[coords.length-1]).bindPopup('Sosire (zona Teliuc)').addTo(map);
+    // 3) Linie groasa + pattern (sa fie imposibil de ratat)
+    const line = L.polyline(coords, {
+      weight: 8,
+      opacity: 0.9
+    }).addTo(map);
+
+    // 4) Rectangle de test in jurul traseului (ca sa vezi ca se deseneaza shapes)
+    const b = line.getBounds();
+    L.rectangle(b.pad(0.02), {weight: 3, dashArray: "8 8"}).addTo(map);
+
+    // 5) Zoom pe traseu
+    map.fitBounds(line.getBounds(), {padding:[30,30]});
+
+    console.log("Bounds:", line.getBounds());
   </script>
 </body>
 </html>
