@@ -3,59 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Traseu Test – Deva–Hunedoara</title>
+  <title>Traseu Supermoto – Deva–Hunedoara</title>
+  <meta name="description" content="Harta interactiva a traseului Deva–Hunedoara cu start/sosire si fisier GPX.">
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
     body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0f1115;color:#e7e9ee}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
     #map{height:70vh;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.25);margin-top:8px}
-    a{color:#8ab4ff}
-    .note{color:#aab0bc}
+    a{color:#8ab4ff;text-decoration:none}
+    .toolbar{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+    .btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
+    .note{color:#aab0bc;font-size:14px;margin-top:8px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Test linie + markere</h1>
-    <p class="note">Daca nu vezi linia/rectangle, fa Ctrl+F5 sau adauga <code>?v=9</code> la URL.</p>
+    <h1>Deva – Hunedoara</h1>
     <div id="map"></div>
+    <div class="toolbar">
+      <a class="btn" href="traseu-manual.gpx" download>Descarca GPX</a>
+      <a href="../index.html">← Inapoi la lista de trasee</a>
+    </div>
+    <p id="status" class="note">Se incarca traseul…</p>
   </div>
 
+  <!-- Leaflet + plugin GPX -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-gpx@1.7.0/dist/leaflet-gpx.min.js"></script>
+
   <script>
-    console.log("Leaflet version:", L.version);
-
-    // 1) Harta
-    const map = L.map('map').setView([45.80, 22.93], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
-
-    // 2) Coordonate test (in jurul Hunedoara)
-    const coords = [
-      [45.749, 22.905],
-      [45.757, 22.922],
-      [45.769, 22.940],
-      [45.782, 22.954],
-      [45.793, 22.934]
-    ];
-
-    // Marcaje mari (trebuie sa le vezi sigur)
-    L.marker(coords[0], {title:"START"}).bindPopup("START").addTo(map);
-    L.marker(coords[coords.length-1], {title:"SOSIRE"}).bindPopup("SOSIRE").addTo(map);
-
-    // 3) Linie groasa + pattern (sa fie imposibil de ratat)
-    const line = L.polyline(coords, {
-      weight: 8,
-      opacity: 0.9
+    // 1) Harta de baza
+    const map = L.map('map').setView([45.85, 22.92], 11);
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
     }).addTo(map);
+    const esriSat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: 'Tiles © Esri' }
+    );
+    L.control.layers({ 'OpenStreetMap': osm, 'Satelit (Esri)': esriSat }, {}).addTo(map);
+    L.control.scale().addTo(map);
 
-    // 4) Rectangle de test in jurul traseului (ca sa vezi ca se deseneaza shapes)
-    const b = line.getBounds();
-    L.rectangle(b.pad(0.02), {weight: 3, dashArray: "8 8"}).addTo(map);
+    // 2) INCARCA AICI GPX-UL TAU
+    //    Daca numele fisierului este altul, modifica 'traseu-manual.gpx'
+    const GPX_FILE = 'traseu-manual.gpx';
 
-    // 5) Zoom pe traseu
-    map.fitBounds(line.getBounds(), {padding:[30,30]});
+    const statusEl = document.getElementById('status');
+    const g = new L.GPX(GPX_FILE, {
+      async: true,
+      marker_options: {
+        startIconUrl: 'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-start.png',
+        endIconUrl:   'https://unpkg.com/leaflet-gpx@1.7.0/pin-icon-end.png',
+        shadowUrl:    'https://unpkg.com/leaflet-gpx@1.7.0/pin-shadow.png'
+      },
+      polyline_options: { weight: 4 }
+    })
+    .on('loaded', (e) => {
+      map.fitBounds(e.target.getBounds(), { padding: [20,20] });
 
-    console.log("Bounds:", line.getBounds());
+      // Marcaje cu pop-up
+      const start = e.target.get_starting_point();
+      const end   = e.target.get_ending_point();
+      if (start) L.marker(start).bindPopup('Start traseu').addTo(map);
+      if (end)   L.marker(end).bindPopup('Sosire').addTo(map);
+
+      // Statistici (optional)
+      const km = (e.target.get_distance() / 1000).toFixed(1);
+      statusEl.textContent = `Traseu incarcat (${km} km).`;
+      document.title = `Traseu Deva–Hunedoara (${km} km)`;
+    })
+    .on('error', () => {
+      statusEl.textContent = `Nu am putut incarca ${GPX_FILE}. Verifica sa fie in folderul /trasee/ si numele corect.`;
+    })
+    .addTo(map);
   </script>
 </body>
 </html>
