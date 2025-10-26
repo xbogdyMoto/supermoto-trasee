@@ -1,1 +1,94 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor traseu (desen manual + export GPX)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+  <style>
+    body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0f1115;color:#e7e9ee}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    #map{height:70vh;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.25);margin-top:8px}
+    .toolbar{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+    .btn{background:#2563eb;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;text-decoration:none;display:inline-block}
+    a{color:#8ab4ff}
+    .note{color:#aab0bc;font-size:14px;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Editor traseu</h1>
+    <p class="note">Alege unealta „Draw polyline” din toolbar (stanga sus), da click pe harta punct cu punct, apoi „Finish”.</p>
+    <div id="map"></div>
+    <div class="toolbar">
+      <button id="exportGPX" class="btn">Export GPX</button>
+      <a href="../index.html">← Inapoi</a>
+    </div>
+    <p class="note">Dupa export, pune fisierul in <b>/trasee/</b> si foloseste-l in pagina rutei.</p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- togpx: GeoJSON -> GPX -->
+  <script src="https://unpkg.com/togpx@0.5.4/togpx.js"></script>
+  <script>
+    // Harta
+    const map = L.map('map').setView([45.85, 22.92], 12);
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
+
+    // Layer pentru desene
+    const drawnItems = new L.FeatureGroup().addTo(map);
+
+    // Toolbar desen
+    const drawControl = new L.Control.Draw({
+      draw: {
+        polygon: false, rectangle: false, circle: false, circlemarker: false,
+        marker: true, // optional (POI)
+        polyline: { shapeOptions: { weight: 4 } }
+      },
+      edit: { featureGroup: drawnItems }
+    });
+    map.addControl(drawControl);
+
+    // Cand se adauga o forma, o punem pe harta
+    map.on(L.Draw.Event.CREATED, e => {
+      drawnItems.addLayer(e.layer);
+      // Zoom pe polilinie daca e cazul
+      if (e.layer instanceof L.Polyline) {
+        map.fitBounds(e.layer.getBounds(), {padding:[20,20]});
+      }
+    });
+
+    // Export GPX
+    document.getElementById('exportGPX').onclick = () => {
+      // Luam prima polilinie (sau combina toate)
+      let lines = [];
+      drawnItems.eachLayer(l => {
+        if (l instanceof L.Polyline && !(l instanceof L.Polygon)) {
+          const coords = l.getLatLngs().map(p => [p.lng, p.lat]); // GeoJSON = [lng,lat]
+          lines.push({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: coords }
+          });
+        }
+      });
+      if (!lines.length) { alert("Deseneaza mai intai o polilinie!"); return; }
+
+      const fc = { type: "FeatureCollection", features: lines };
+      const gpxText = togpx(fc); // convertim GeoJSON -> GPX
+
+      // Download ca fisier
+      const blob = new Blob([gpxText], {type: "application/gpx+xml"});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "traseu-manual.gpx";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+  </script>
+</body>
+</html>
 
